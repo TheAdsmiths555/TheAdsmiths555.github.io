@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClarityOS Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #191919;
+            --text-color: #ffffff;
+            --accent-color: #2ecc71; /* Green */
+            --card-bg: #2d2d2d;
+            --clock-size: 220px;
+            --modal-bg: #252525;
+        }
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 100vh;
+            box-sizing: border-box;
+            gap: 20px;
+        }
+
+        /* --- WIDGET CONTAINER --- */
+        .widget-container {
+            flex: 1;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        /* --- 1. ANALOG CLOCK --- */
+        .analog-clock {
+            width: var(--clock-size);
+            height: var(--clock-size);
+            border-radius: 50%;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .tick {
+            position: absolute;
+            width: 2px;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.6);
+            left: 50%;
+            top: 0;
+            transform-origin: 50% 110px;
+        }
+        .tick.major { height: 15px; width: 3px; background: #fff; }
+        .hand {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            transform-origin: bottom center;
+            background: #fff;
+            border-radius: 4px;
+            z-index: 2;
+            transition: transform 0.05s cubic-bezier(0.4, 2.3, 0.3, 1);
+        }
+        .hour-hand { width: 4px; height: 60px; margin-left: -2px; }
+        .minute-hand { width: 2px; height: 90px; margin-left: -1px; background: #e0e0e0; }
+        
+        /* Green Second Hand */
+        .second-hand { 
+            width: 1px; 
+            height: 100px; 
+            margin-left: -0.5px; 
+            background: var(--accent-color); 
+            z-index: 3; 
+        }
+        
+        .center-dot { width: 8px; height: 8px; background: #fff; border-radius: 50%; position: absolute; z-index: 4; }
+        
+        .digital-overlay {
+            position: absolute;
+            top: 60%; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 1; 
+        }
+        #clock-time-digital { font-size: 1.8em; font-weight: 600; line-height: 1; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+        #clock-date-digital { font-size: 0.7em; color: #ccc; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+
+        /* --- 2. QUOTE WIDGET --- */
+        .quote-content {
+            position: relative;
+            padding: 0 20px;
+        }
+        #quote-text { font-size: 1.1em; font-style: italic; line-height: 1.4; margin-bottom: 10px; min-height: 60px; display: flex; align-items: center; justify-content: center;}
+        #quote-author { font-size: 0.8em; color: var(--accent-color); font-weight: bold; }
+        
+        /* Refresh Button */
+        .refresh-quote-btn {
+            background: transparent;
+            border: 1px solid #444;
+            color: #888;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 15px;
+            transition: all 0.2s;
+        }
+        .refresh-quote-btn:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+            transform: rotate(180deg);
+        }
+
+        /* --- 3. POMODORO TIMER --- */
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: rgba(0,0,0,0.2);
+            padding: 5px;
+            border-radius: 50px;
+        }
+        .mode-btn {
+            background: transparent;
+            border: none;
+            color: #aaa;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .mode-btn.active {
+            background: var(--accent-color);
+            color: #191919;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .timer-display {
+            font-size: 4em;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            margin-bottom: 20px;
+            line-height: 1;
+        }
+
+        .timer-controls { display: flex; align-items: center; gap: 15px; }
+        .control-btn {
+            background: #fff;
+            border: none;
+            color: var(--bg-color);
+            padding: 10px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: transform 0.1s;
+        }
+        .control-btn:active { transform: scale(0.95); }
+        .control-btn.secondary { background: transparent; color: #fff; padding: 10px; border: 1px solid #555; }
+        .control-btn.secondary:hover { background: rgba(255,255,255,0.1); }
+
+        /* --- SETTINGS MODAL --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .modal-overlay.open { opacity: 1; pointer-events: all; }
+        .settings-modal {
+            background: var(--modal-bg);
+            width: 90%;
+            max-width: 400px;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            text-align: left;
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
+        .modal-header h3 { margin: 0; color: #fff; }
+        .close-btn { background: none; border: none; color: #aaa; font-size: 1.5em; cursor: pointer; }
+        .setting-group { margin-bottom: 20px; }
+        .setting-label { display: block; font-size: 0.8em; color: #aaa; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        .setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .input-row { display: flex; gap: 10px; }
+        .input-wrapper { flex: 1; }
+        .input-wrapper label { display: block; font-size: 0.75em; margin-bottom: 5px; color: #ccc;}
+        input[type="number"] { width: 100%; background: #333; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 4px; box-sizing: border-box; }
+        
+        .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #444; transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--accent-color); }
+        input:checked + .slider:before { transform: translateX(20px); }
+        input[type=range] { width: 100%; height: 4px; background: #444; border-radius: 2px; appearance: none; }
+        input[type=range]::-webkit-slider-thumb { appearance: none; width: 16px; height: 16px; background: #fff; border-radius: 50%; cursor: pointer; }
+
+        @media (max-width: 800px) {
+            body { flex-direction: column; padding: 10px; height: auto; }
+            .widget-container { width: 100%; margin-bottom: 10px; min-height: 250px;}
+        }
+    </style>
+</head>
+<body>
+
+    <div class="widget-container">
+        <div class="analog-clock" id="clock-face">
+            <div class="hand hour-hand" id="hour-hand"></div>
+            <div class="hand minute-hand" id="minute-hand"></div>
+            <div class="hand second-hand" id="second-hand"></div>
+            <div class="center-dot"></div>
+            <div class="digital-overlay">
+                <div id="clock-time-digital">00:00</div>
+                <div id="clock-date-digital">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="widget-container">
+        <div class="quote-content">
+            <div id="quote-text">"You do not rise to the level of your goals. You fall to the level of your systems."</div>
+            <div id="quote-author">- James Clear</div>
+        </div>
+        <button class="refresh-quote-btn" onclick="rotateQuote()" title="Next Quote">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 4v6h-6"></path>
+                <path d="M1 20v-6h6"></path>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+        </button>
+    </div>
+
+    <div class="widget-container">
+        <div class="mode-selector">
+            <button class="mode-btn active" onclick="setMode('pomodoro')">Pomodoro</button>
+            <button class="mode-btn" onclick="setMode('short')">Short Break</button>
+            <button class="mode-btn" onclick="setMode('long')">Long Break</button>
+        </div>
+
+        <div class="timer-display" id="timer">25:00</div>
+        
+        <div class="timer-controls">
+            <button class="control-btn" id="start-btn" onclick="toggleTimer()">Start</button>
+            <button class="control-btn secondary" onclick="resetTimer()">↺</button>
+            <button class="control-btn secondary" onclick="openSettings()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="settings-modal">
+        <div class="settings-modal">
+            <div class="modal-header">
+                <h3>Timer Settings</h3>
+                <button class="close-btn" onclick="closeSettings()">×</button>
+            </div>
+            
+            <div class="setting-group">
+                <span class="setting-label">Time (minutes)</span>
+                <div class="input-row">
+                    <div class="input-wrapper">
+                        <label>Pomodoro</label>
+                        <input type="number" id="time-pomodoro" value="25">
+                    </div>
+                    <div class="input-wrapper">
+                        <label>Short Break</label>
+                        <input type="number" id="time-short" value="5">
+                    </div>
+                    <div class="input-wrapper">
+                        <label>Long Break</label>
+                        <input type="number" id="time-long" value="10">
+                    </div>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <span class="setting-label">Sound</span>
+                <div class="setting-row">
+                    <span>Play Sound</span>
+                    <label class="switch">
+                        <input type="checkbox" id="sound-enabled" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-row">
+                    <span>Alert Volume</span>
+                    <input type="range" id="volume-slider" min="0" max="100" value="50">
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <span class="setting-label">Notifications</span>
+                <div class="setting-row">
+                    <span>Browser Notification</span>
+                    <label class="switch">
+                        <input type="checkbox" id="notify-enabled" onchange="requestNotifyPermission()">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <button class="control-btn" style="width: 100%;" onclick="saveSettings()">Save Changes</button>
+        </div>
+    </div>
+
+    <script>
+        // --- CLOCK & QUOTE ---
+        function initClockFace() {
+            const clockFace = document.getElementById('clock-face');
+            for (let i = 0; i < 12; i++) {
+                const tick = document.createElement('div');
+                tick.classList.add('tick');
+                if (i % 3 === 0) tick.classList.add('major');
+                tick.style.transform = `rotate(${i * 30}deg)`;
+                clockFace.appendChild(tick);
+            }
+        }
+        function updateClock() {
+            const now = new Date();
+            const s = now.getSeconds(), m = now.getMinutes(), h = now.getHours();
+            const sDeg = ((s/60)*360), mDeg = ((m/60)*360)+((s/60)*6), hDeg = ((h/12)*360)+((m/60)*30);
+            
+            document.getElementById('second-hand').style.transform = `rotate(${sDeg}deg)`;
+            document.getElementById('minute-hand').style.transform = `rotate(${mDeg}deg)`;
+            document.getElementById('hour-hand').style.transform = `rotate(${hDeg}deg)`;
+            
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+            const dateStr = now.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+            
+            document.getElementById('clock-time-digital').textContent = timeStr;
+            document.getElementById('clock-date-digital').textContent = dateStr;
+        }
+        initClockFace(); setInterval(updateClock, 1000); updateClock();
+
+        const quotes = [
+            { text: "Habits are the compound interest of self-improvement.", author: "James Clear" },
+            { text: "Success is the product of daily habits.", author: "James Clear" },
+            { text: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.", author: "Aristotle" },
+            { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+            { text: "Focus on being productive instead of busy.", author: "Tim Ferriss" }
+        ];
+        
+        function rotateQuote() {
+            const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+            document.getElementById('quote-text').textContent = `"${randomQuote.text}"`;
+            document.getElementById('quote-author').textContent = `- ${randomQuote.author}`;
+        }
+        rotateQuote(); 
+
+        // --- POMODORO LOGIC ---
+        let timerInterval;
+        let timeLeft = 25 * 60;
+        let isRunning = false;
+        let currentMode = 'pomodoro';
+        
+        let modes = { pomodoro: 25, short: 5, long: 10 };
+        let settings = { sound: true, volume: 0.5, notifications: false };
+
+        const modeBtns = document.querySelectorAll('.mode-btn');
+        const timerDisplay = document.getElementById('timer');
+        const startBtn = document.getElementById('start-btn');
+
+        function setMode(mode) {
+            currentMode = mode;
+            pauseTimer();
+            timeLeft = modes[mode] * 60;
+            updateDisplay();
+            modeBtns.forEach(btn => btn.classList.remove('active'));
+            if(mode === 'pomodoro') modeBtns[0].classList.add('active');
+            if(mode === 'short') modeBtns[1].classList.add('active');
+            if(mode === 'long') modeBtns[2].classList.add('active');
+        }
+
+        function updateDisplay() {
+            const m = Math.floor(timeLeft / 60);
+            const s = timeLeft % 60;
+            timerDisplay.textContent = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            document.title = `${timerDisplay.textContent} - Focus`;
+        }
+
+        function toggleTimer() {
+            if (isRunning) {
+                pauseTimer();
+            } else {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                isRunning = true;
+                startBtn.textContent = 'Pause';
+                timerInterval = setInterval(() => {
+                    if (timeLeft > 0) {
+                        timeLeft--;
+                        updateDisplay();
+                    } else {
+                        finishTimer();
+                    }
+                }, 1000);
+            }
+        }
+
+        function pauseTimer() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            startBtn.textContent = 'Start';
+        }
+
+        function resetTimer() {
+            pauseTimer();
+            timeLeft = modes[currentMode] * 60;
+            updateDisplay();
+        }
+
+        // --- UPDATED FINISH SEQUENCE ---
+        function finishTimer() {
+            pauseTimer();
+            
+            let repetition = 0;
+            const totalRepetitions = 3;
+            // Matches the sound fade duration (1.5s)
+            const interval = 1500; 
+
+            function runSequence() {
+                if (repetition < totalRepetitions) {
+                    // 1. Play Sound (start of cycle)
+                    if (settings.sound) playSmoothBell();
+                    
+                    // 2. Schedule Notification 'After the sound' (at the end of the interval)
+                    setTimeout(() => {
+                        if (settings.notifications) sendNotification();
+                        
+                        // 3. Trigger next repetition
+                        repetition++;
+                        runSequence(); 
+                    }, interval);
+                } else {
+                    // Sequence Complete: Show Alert
+                    setTimeout(() => alert("Timer Finished!"), 100);
+                }
+            }
+            
+            // Start the loop
+            runSequence();
+        }
+
+        // --- SETTINGS ---
+        function openSettings() {
+            document.getElementById('settings-modal').classList.add('open');
+            document.getElementById('time-pomodoro').value = modes.pomodoro;
+            document.getElementById('time-short').value = modes.short;
+            document.getElementById('time-long').value = modes.long;
+            document.getElementById('sound-enabled').checked = settings.sound;
+            document.getElementById('volume-slider').value = settings.volume * 100;
+            document.getElementById('notify-enabled').checked = settings.notifications;
+        }
+
+        function closeSettings() {
+            document.getElementById('settings-modal').classList.remove('open');
+        }
+
+        function saveSettings() {
+            modes.pomodoro = parseInt(document.getElementById('time-pomodoro').value);
+            modes.short = parseInt(document.getElementById('time-short').value);
+            modes.long = parseInt(document.getElementById('time-long').value);
+            settings.sound = document.getElementById('sound-enabled').checked;
+            settings.volume = document.getElementById('volume-slider').value / 100;
+            settings.notifications = document.getElementById('notify-enabled').checked;
+            resetTimer();
+            closeSettings();
+        }
+
+        function requestNotifyPermission() {
+            if ("Notification" in window && Notification.permission !== "denied") {
+                Notification.requestPermission();
+            }
+        }
+
+        function sendNotification() {
+            if (Notification.permission === "granted") {
+                new Notification("Time's Up!", {
+                    body: `${currentMode.toUpperCase()} timer has finished.`,
+                    icon: "https://cdn-icons-png.flaticon.com/512/2098/2098542.png"
+                });
+            }
+        }
+
+        // --- AUDIO ENGINE ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playSmoothBell() {
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+            
+            const now = audioCtx.currentTime;
+            const volume = settings.volume;
+            
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(volume, now + 0.1); // Attack
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 1.5); // Decay
+            
+            oscillator.start(now);
+            oscillator.stop(now + 1.5);
+        }
+    </script>
+</body>
+</html>
