@@ -99,12 +99,29 @@
         #clock-date-digital { font-size: 0.7em; color: #ccc; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
 
         /* --- 2. QUOTE WIDGET --- */
+        /* Brand Header Style */
+        .brand-header {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.75em;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent-color);
+            font-weight: 700;
+            opacity: 0.9;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
         .quote-content {
             position: relative;
-            padding: 0 20px;
+            padding: 20px 20px 0 20px; /* Added top padding for brand header */
         }
         #quote-text { font-size: 1.1em; font-style: italic; line-height: 1.4; margin-bottom: 10px; min-height: 60px; display: flex; align-items: center; justify-content: center;}
-        #quote-author { font-size: 0.8em; color: var(--accent-color); font-weight: bold; }
+        #quote-author { font-size: 0.8em; color: #aaa; font-weight: bold; } /* Changed to grey to let brand color pop */
         
         /* Refresh Button */
         .refresh-quote-btn {
@@ -243,6 +260,13 @@
     </div>
 
     <div class="widget-container">
+        <div class="brand-header">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+            ClarityOS
+        </div>
+
         <div class="quote-content">
             <div id="quote-text">"You do not rise to the level of your goals. You fall to the level of your systems."</div>
             <div id="quote-author">- James Clear</div>
