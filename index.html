@@ -99,29 +99,13 @@
         #clock-date-digital { font-size: 0.7em; color: #ccc; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
 
         /* --- 2. QUOTE WIDGET --- */
-        /* Brand Header Style */
-        .brand-header {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 0.75em;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: var(--accent-color);
-            font-weight: 700;
-            opacity: 0.9;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        
         .quote-content {
             position: relative;
-            padding: 20px 20px 0 20px; /* Added top padding for brand header */
+            padding: 0 20px;
+            margin-bottom: 5px;
         }
         #quote-text { font-size: 1.1em; font-style: italic; line-height: 1.4; margin-bottom: 10px; min-height: 60px; display: flex; align-items: center; justify-content: center;}
-        #quote-author { font-size: 0.8em; color: #aaa; font-weight: bold; } /* Changed to grey to let brand color pop */
+        #quote-author { font-size: 0.8em; color: #aaa; font-weight: bold; }
         
         /* Refresh Button */
         .refresh-quote-btn {
@@ -135,13 +119,27 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-top: 15px;
+            margin-top: 10px;
+            margin-bottom: 20px; /* Space between button and branding */
             transition: all 0.2s;
         }
         .refresh-quote-btn:hover {
             border-color: var(--accent-color);
             color: var(--accent-color);
             transform: rotate(180deg);
+        }
+
+        /* Branding moved to bottom */
+        .brand-header {
+            font-size: 0.75em;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent-color);
+            font-weight: 700;
+            opacity: 0.9;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         /* --- 3. POMODORO TIMER --- */
@@ -260,17 +258,11 @@
     </div>
 
     <div class="widget-container">
-        <div class="brand-header">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-            </svg>
-            ClarityOS
-        </div>
-
         <div class="quote-content">
             <div id="quote-text">"You do not rise to the level of your goals. You fall to the level of your systems."</div>
             <div id="quote-author">- James Clear</div>
         </div>
+        
         <button class="refresh-quote-btn" onclick="rotateQuote()" title="Next Quote">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M23 4v6h-6"></path>
@@ -278,6 +270,13 @@
                 <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
             </svg>
         </button>
+
+        <div class="brand-header">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+            ClarityOS
+        </div>
     </div>
 
     <div class="widget-container">
@@ -402,16 +401,24 @@
 
         // --- POMODORO LOGIC ---
         let timerInterval;
-        let timeLeft = 25 * 60;
         let isRunning = false;
         let currentMode = 'pomodoro';
+
+        // Defaults
+        const defaultModes = { pomodoro: 25, short: 5, long: 10 };
+        const defaultSettings = { sound: true, volume: 0.5, notifications: false };
+
+        // Load Persistence
+        let modes = JSON.parse(localStorage.getItem('clarityOS_modes')) || defaultModes;
+        let settings = JSON.parse(localStorage.getItem('clarityOS_settings')) || defaultSettings;
         
-        let modes = { pomodoro: 25, short: 5, long: 10 };
-        let settings = { sound: true, volume: 0.5, notifications: false };
+        let timeLeft = modes[currentMode] * 60;
 
         const modeBtns = document.querySelectorAll('.mode-btn');
         const timerDisplay = document.getElementById('timer');
         const startBtn = document.getElementById('start-btn');
+        
+        updateDisplay(); // Init display
 
         function setMode(mode) {
             currentMode = mode;
@@ -461,35 +468,26 @@
             updateDisplay();
         }
 
-        // --- UPDATED FINISH SEQUENCE ---
         function finishTimer() {
             pauseTimer();
             
             let repetition = 0;
             const totalRepetitions = 3;
-            // Matches the sound fade duration (1.5s)
             const interval = 1500; 
 
             function runSequence() {
                 if (repetition < totalRepetitions) {
-                    // 1. Play Sound (start of cycle)
                     if (settings.sound) playSmoothBell();
                     
-                    // 2. Schedule Notification 'After the sound' (at the end of the interval)
                     setTimeout(() => {
                         if (settings.notifications) sendNotification();
-                        
-                        // 3. Trigger next repetition
                         repetition++;
                         runSequence(); 
                     }, interval);
                 } else {
-                    // Sequence Complete: Show Alert
                     setTimeout(() => alert("Timer Finished!"), 100);
                 }
             }
-            
-            // Start the loop
             runSequence();
         }
 
@@ -515,6 +513,10 @@
             settings.sound = document.getElementById('sound-enabled').checked;
             settings.volume = document.getElementById('volume-slider').value / 100;
             settings.notifications = document.getElementById('notify-enabled').checked;
+
+            localStorage.setItem('clarityOS_modes', JSON.stringify(modes));
+            localStorage.setItem('clarityOS_settings', JSON.stringify(settings));
+
             resetTimer();
             closeSettings();
         }
@@ -551,8 +553,8 @@
             const volume = settings.volume;
             
             gainNode.gain.setValueAtTime(0, now);
-            gainNode.gain.linearRampToValueAtTime(volume, now + 0.1); // Attack
-            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 1.5); // Decay
+            gainNode.gain.linearRampToValueAtTime(volume, now + 0.1); 
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 1.5); 
             
             oscillator.start(now);
             oscillator.stop(now + 1.5);
